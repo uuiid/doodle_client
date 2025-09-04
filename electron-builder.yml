@@ -1,5 +1,5 @@
 appId: com.doodle.app
-productName: doodle
+productName: SYMagic
 directories:
   buildResources: build
 files:
@@ -12,14 +12,13 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: doodle
   target: nsis
   icon: build/icon.ico
 portable:
   artifactName: ${name}.${ext}
 nsis:
-  artifactName: ${name}.${ext}
-  shortcutName: ${productName}
+  artifactName: '索以魔盒.${ext}'
+  shortcutName: '索以魔盒'
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
