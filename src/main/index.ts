@@ -58,9 +58,9 @@ function createWindow(): void {
   else mainWindow.loadURL('http://192.168.40.181/')
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     if (details.url.startsWith('http://127.0.0.1')) {
-      details.requestHeaders['cookie'] = doodle_cookie
+      details.requestHeaders['Cookie'] = doodle_cookie
     } else {
-      doodle_cookie = details.requestHeaders['cookie']
+      doodle_cookie = details.requestHeaders['Cookie']
     }
     // set custom User-Agent in requestHeaders
     details.requestHeaders['User-Agent'] =
