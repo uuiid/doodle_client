@@ -12,6 +12,7 @@ let mainWindow: BrowserWindow
 
 const doodleProcessServer = new DoodleProcess()
 const doodleExe = new DoodleProcess()
+let doodle_cookie: string
 // const isDevelopment = process.env.NODE_ENV === 'development'
 
 function createWindow(): void {
@@ -56,6 +57,11 @@ function createWindow(): void {
   // Load the remote URL for development or the local html file for production.
   else mainWindow.loadURL('http://192.168.40.181/')
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    if (details.url.startsWith('http://127.0.0.1')) {
+      details.requestHeaders['cookie'] = doodle_cookie
+    } else {
+      doodle_cookie = details.requestHeaders['cookie']
+    }
     // set custom User-Agent in requestHeaders
     details.requestHeaders['User-Agent'] =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
