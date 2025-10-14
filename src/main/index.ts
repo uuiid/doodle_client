@@ -5,6 +5,8 @@ import icon from '../../resources/icon.png?asset'
 
 import { DoodleProcess } from './doodle_process'
 import * as fs from 'node:fs'
+import * as http from 'node:http'
+import * as unzipper from 'unzipper'
 
 const VITE_PUBLIC = join(join(__dirname, '..'), '../resources')
 
@@ -138,7 +140,35 @@ if (!gotTheLock) {
     ipcMain.on('doodleExeClose', () => {
       doodleExe.kill()
     })
-
+    ipcMain.on('downloadAndUnzip', async (_, url: string, outputDir: string) => {
+      return new Promise<string>((resolve, reject) => {
+        http
+          .get(url, (res) => {
+            if (res.statusCode !== 200) {
+              reject(new Error(`请求失败: ${res.statusCode}`))
+              return
+            }
+            const total = parseInt(res.headers['content-length'] || '0', 10)
+            let downloaded = 0
+            const unzipStream = unzipper.Extract({ path: outputDir })
+            res.on('data', (chunk) => {
+              downloaded += chunk.length
+              if (total > 0) {
+                const percent = ((downloaded / total) * 100).toFixed(2)
+                mainWindow.webContents.send('download-progress', percent)
+              }
+            })
+            res.on('error', (err) => reject(err))
+            res.pipe(unzipStream)
+            unzipStream.on('close', () => {
+              mainWindow.webContents.send('download-progress', 100)
+              resolve('✅ 解压完成')
+            })
+            unzipStream.on('error', (err) => reject(err))
+          })
+          .on('error', reject)
+      })
+    })
     createWindow()
 
     app.on('activate', function () {

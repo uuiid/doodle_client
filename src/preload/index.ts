@@ -17,6 +17,12 @@ const api = {
   },
   doodleExeClose() {
     electronAPI.ipcRenderer.send('doodleExeClose')
+  },
+  downloadAndUnzip(url: string, path: string) {
+    electronAPI.ipcRenderer.send('downloadAndUnzip', url, path)
+  },
+  onProgress(callback: (percent: number) => void) {
+    electronAPI.ipcRenderer.on('download-progress', (_, percent) => callback(percent))
   }
 }
 
