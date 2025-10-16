@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import { DoodleProcess } from './doodle_process'
 import * as fs from 'node:fs'
 import * as http from 'node:http'
-import * as unzipper from 'unzipper'
+import path from 'node:path'
 
 const VITE_PUBLIC = join(join(__dirname, '..'), '../resources')
 
@@ -142,31 +142,53 @@ if (!gotTheLock) {
     })
     ipcMain.on('downloadAndUnzip', async (_, url: string, outputDir: string) => {
       return new Promise<string>((resolve, reject) => {
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true })
+        }
+        const filePath = join(outputDir, path.basename(url))
+        const file = fs.createWriteStream(filePath)
         http
           .get(url, (res) => {
             if (res.statusCode !== 200) {
               reject(new Error(`请求失败: ${res.statusCode}`))
               return
             }
+
             const total = parseInt(res.headers['content-length'] || '0', 10)
             let downloaded = 0
-            const unzipStream = unzipper.Extract({ path: outputDir })
+
+            res.on('close', () => {
+              doodleExe.unzipFast(
+                filePath,
+                outputDir,
+                (percent) => {
+                  mainWindow.webContents.send('download-progress', percent)
+                },
+                () => {
+                  if (fs.existsSync(filePath)) fs.rmSync(filePath)
+                  resolve('✅ 解压完成')
+                }
+              )
+            })
+
             res.on('data', (chunk) => {
               downloaded += chunk.length
               if (total > 0) {
-                const percent = ((downloaded / total) * 100).toFixed(2)
+                const percent = doodleExe.mapProgress(downloaded / total, 0, 50).toFixed(2)
                 mainWindow.webContents.send('download-progress', percent)
               }
             })
-            res.on('error', (err) => reject(err))
-            res.pipe(unzipStream)
-            unzipStream.on('close', () => {
-              mainWindow.webContents.send('download-progress', 100)
-              resolve('✅ 解压完成')
+
+            res.on('error', (err) => {
+              reject(err)
             })
-            unzipStream.on('error', (err) => reject(err))
+
+            res.pipe(file)
           })
-          .on('error', reject)
+          .on('error', (err) => {
+
+            reject(new Error('解压失败'))
+          })
       })
     })
     createWindow()

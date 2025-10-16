@@ -1,4 +1,9 @@
 import { execFile, ChildProcess } from 'node:child_process'
+import * as yauzl from 'yauzl'
+import * as iconv from 'iconv-lite'
+import * as path from 'node:path'
+import * as mkdirp from 'mkdirp'
+import * as fs from 'node:fs'
 
 export class DoodleProcess {
   DoodleChildProcess: ChildProcess | null
@@ -41,6 +46,56 @@ export class DoodleProcess {
       return this.DoodleChildProcess.pid
     }
     return 0
+  }
+  mapProgress(value: number, min: number, max: number): number {
+    return min + (max - min) * value
+  }
+
+  unzipFast(
+    zipPath: string,
+    outputDir: string,
+    onProgress?: (percent: number) => void,
+    onEnd?: () => void
+  ) {
+    yauzl.open(zipPath, { lazyEntries: true, decodeStrings: false }, (err, zipfile) => {
+      if (err) throw err
+      const totalFiles = zipfile.entryCount
+      let doneFiles = 0
+      zipfile.readEntry()
+      zipfile.on('entry', (entry) => {
+        const fileName = iconv.decode(entry.fileName, 'utf-8')
+        const fullPath = path.join(outputDir, fileName)
+
+        if (/\/$/.test(fileName)) {
+          mkdirp.sync(fullPath)
+          doneFiles++
+          const percent = this.mapProgress(doneFiles / totalFiles, 50, 100).toFixed(2)
+          onProgress?.(Number(percent))
+          zipfile.readEntry()
+        } else {
+
+          mkdirp.sync(path.dirname(fullPath))
+          zipfile.openReadStream(entry, (err, readStream) => {
+            if (err) throw err
+            const writeStream = fs.createWriteStream(fullPath)
+            readStream.pipe(writeStream)
+            writeStream.on('finish', () => {
+              doneFiles++
+              if (onProgress) {
+                const percent = this.mapProgress(doneFiles / totalFiles, 50, 100).toFixed(2)
+                onProgress(Number(percent))
+              }
+              zipfile.readEntry()
+            })
+          })
+        }
+      })
+
+      zipfile.on('end', () => {
+        onEnd?.()
+      })
+      zipfile.on('error', (err) => console.error('解压出错:', err))
+    })
   }
 }
 
