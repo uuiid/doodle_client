@@ -186,8 +186,7 @@ if (!gotTheLock) {
             res.pipe(file)
           })
           .on('error', (err) => {
-
-            reject(new Error('解压失败'))
+            reject(new Error('解压失败' + err))
           })
       })
     })
