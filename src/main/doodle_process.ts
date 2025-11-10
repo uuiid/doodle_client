@@ -19,6 +19,8 @@ export class DoodleProcess {
 
     this.DoodleChildProcess = execFile(path, args, { windowsHide: true }, (err) => {
       if (err) console.log(err)
+      this.DoodleChildProcess = null
+      this.port = 0
     })
     const childProcess = this.DoodleChildProcess
     if (childProcess && childProcess.stdout) {
@@ -73,7 +75,6 @@ export class DoodleProcess {
           onProgress?.(Number(percent))
           zipfile.readEntry()
         } else {
-
           mkdirp.sync(path.dirname(fullPath))
           zipfile.openReadStream(entry, (err, readStream) => {
             if (err) throw err
