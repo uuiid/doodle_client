@@ -61,7 +61,8 @@ function createWindow(): void {
   // Load the remote URL for development or the local html file for production.
   else mainWindow.loadURL('http://192.168.40.181/')
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    if (typeof doodle_cookie === 'string') details.requestHeaders['Cookie'] = doodle_cookie
+    if (typeof doodle_cookie === 'string')
+      details.requestHeaders['Cookie'] = `access_token_cookie=${doodle_cookie}`
     else delete details.requestHeaders['Cookie']
     // set custom User-Agent in requestHeaders
     details.requestHeaders['User-Agent'] =
