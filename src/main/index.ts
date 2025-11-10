@@ -7,14 +7,16 @@ import { DoodleProcess } from './doodle_process'
 import * as fs from 'node:fs'
 import * as http from 'node:http'
 import path from 'node:path'
+import settings from 'electron-settings'
 
 const VITE_PUBLIC = join(join(__dirname, '..'), '../resources')
+const MAIN_COOKIES: string = 'main_cookies'
 
 let mainWindow: BrowserWindow
 
 const doodleProcessServer = new DoodleProcess()
 const doodleExe = new DoodleProcess()
-let doodle_cookie: string
+let doodle_cookie = settings.getSync(MAIN_COOKIES)
 // const isDevelopment = process.env.NODE_ENV === 'development'
 
 function createWindow(): void {
@@ -59,11 +61,8 @@ function createWindow(): void {
   // Load the remote URL for development or the local html file for production.
   else mainWindow.loadURL('http://192.168.40.181/')
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    if (details.url.startsWith('http://127.0.0.1')) {
-      details.requestHeaders['Cookie'] = doodle_cookie
-    } else {
-      doodle_cookie = details.requestHeaders['Cookie']
-    }
+    if (typeof doodle_cookie === 'string') details.requestHeaders['Cookie'] = doodle_cookie
+    else delete details.requestHeaders['Cookie']
     // set custom User-Agent in requestHeaders
     details.requestHeaders['User-Agent'] =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
@@ -139,6 +138,10 @@ if (!gotTheLock) {
     })
     ipcMain.on('doodleExeClose', () => {
       doodleExe.kill()
+    })
+    ipcMain.on('setCookies', (_, in_cookies: string) => {
+      doodle_cookie = in_cookies
+      settings.setSync(MAIN_COOKIES, in_cookies)
     })
     ipcMain.on('downloadAndUnzip', async (_, url: string, outputDir: string) => {
       return new Promise<string>((resolve, reject) => {

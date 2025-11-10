@@ -21,6 +21,9 @@ const api = {
   downloadAndUnzip(url: string, path: string) {
     electronAPI.ipcRenderer.send('downloadAndUnzip', url, path)
   },
+  setCookies(in_cookise: string) {
+    electronAPI.ipcRenderer.send('setCookies', in_cookise)
+  },
   onProgress(callback: (percent: number) => void) {
     electronAPI.ipcRenderer.on('download-progress', (_, percent) => callback(percent))
   }
