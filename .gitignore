@@ -4,8 +4,8 @@ out
 build
 
 
-.bmp
-.ico
-.png
+*.bmp
+*.ico
+*.png
 .DS_Store
 *.log*
