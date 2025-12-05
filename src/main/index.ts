@@ -59,7 +59,7 @@ function createWindow(): void {
   }
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  else mainWindow.loadURL('http://192.168.40.181/')
+  else mainWindow.loadURL('http://192.168.0.181/')
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     if (typeof doodle_cookie === 'string')
       details.requestHeaders['Cookie'] = `access_token_cookie=${doodle_cookie}`
@@ -152,43 +152,51 @@ if (!gotTheLock) {
         const filePath = join(outputDir, path.basename(url))
         const file = fs.createWriteStream(filePath)
         http
-          .get(url, (res) => {
-            if (res.statusCode !== 200) {
-              reject(new Error(`请求失败: ${res.statusCode}`))
-              return
-            }
-
-            const total = parseInt(res.headers['content-length'] || '0', 10)
-            let downloaded = 0
-
-            res.on('close', () => {
-              doodleExe.unzipFast(
-                filePath,
-                outputDir,
-                (percent) => {
-                  mainWindow.webContents.send('download-progress', percent)
-                },
-                () => {
-                  if (fs.existsSync(filePath)) fs.rmSync(filePath)
-                  resolve('✅ 解压完成')
-                }
-              )
-            })
-
-            res.on('data', (chunk) => {
-              downloaded += chunk.length
-              if (total > 0) {
-                const percent = doodleExe.mapProgress(downloaded / total, 0, 50).toFixed(2)
-                mainWindow.webContents.send('download-progress', percent)
+          .get(
+            url,
+            {
+              headers: {
+                'Keep-Alive': 'timeout=200'
               }
-            })
+            },
+            (res) => {
+              if (res.statusCode !== 200) {
+                reject(new Error(`请求失败: ${res.statusCode}`))
+                return
+              }
 
-            res.on('error', (err) => {
-              reject(err)
-            })
+              const total = parseInt(res.headers['content-length'] || '0', 10)
+              let downloaded = 0
 
-            res.pipe(file)
-          })
+              res.on('close', () => {
+                doodleExe.unzipFast(
+                  filePath,
+                  outputDir,
+                  (percent) => {
+                    mainWindow.webContents.send('download-progress', percent)
+                  },
+                  () => {
+                    if (fs.existsSync(filePath)) fs.rmSync(filePath)
+                    resolve('✅ 解压完成')
+                  }
+                )
+              })
+
+              res.on('data', (chunk) => {
+                downloaded += chunk.length
+                if (total > 0) {
+                  const percent = doodleExe.mapProgress(downloaded / total, 0, 50).toFixed(2)
+                  mainWindow.webContents.send('download-progress', percent)
+                }
+              })
+
+              res.on('error', (err) => {
+                reject(err)
+              })
+
+              res.pipe(file)
+            }
+          )
           .on('error', (err) => {
             reject(new Error('解压失败' + err))
           })
