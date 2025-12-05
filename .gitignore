@@ -1,5 +1,11 @@
 node_modules
 dist
 out
+build
+
+
+.bmp
+.ico
+.png
 .DS_Store
 *.log*
